@@ -1,0 +1,125 @@
+name: Screenless tracker motion profile
+version: 1
+author: Fitness Band Team
+steps:
+  # Phase 1: resting/still — 20 seconds at approximately 1g on Z.
+  - set-control: { part-id: imu1, control: accelX, value: 0.00 }
+  - set-control: { part-id: imu1, control: accelY, value: 0.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.00 }
+  - delay: 20s
+
+  # Phase 2: walking — 20 seconds of lower-amplitude motion.
+  - set-control: { part-id: imu1, control: accelX, value: 0.18 }
+  - set-control: { part-id: imu1, control: accelY, value: 0.35 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.10 }
+  - delay: 2500ms
+  - set-control: { part-id: imu1, control: accelX, value: -0.18 }
+  - set-control: { part-id: imu1, control: accelY, value: -0.35 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.90 }
+  - delay: 2500ms
+  - set-control: { part-id: imu1, control: accelX, value: 0.22 }
+  - set-control: { part-id: imu1, control: accelY, value: 0.40 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.12 }
+  - delay: 2500ms
+  - set-control: { part-id: imu1, control: accelX, value: -0.22 }
+  - set-control: { part-id: imu1, control: accelY, value: -0.40 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.88 }
+  - delay: 2500ms
+  - set-control: { part-id: imu1, control: accelX, value: 0.18 }
+  - set-control: { part-id: imu1, control: accelY, value: 0.35 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.10 }
+  - delay: 2500ms
+  - set-control: { part-id: imu1, control: accelX, value: -0.18 }
+  - set-control: { part-id: imu1, control: accelY, value: -0.35 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.90 }
+  - delay: 2500ms
+  - set-control: { part-id: imu1, control: accelX, value: 0.22 }
+  - set-control: { part-id: imu1, control: accelY, value: 0.40 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.12 }
+  - delay: 2500ms
+  - set-control: { part-id: imu1, control: accelX, value: -0.22 }
+  - set-control: { part-id: imu1, control: accelY, value: -0.40 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.88 }
+  - delay: 2500ms
+
+  # Phase 3: vigorous/running — 20 seconds of stronger 1-second oscillations.
+  - set-control: { part-id: imu1, control: accelX, value: 0.65 }
+  - set-control: { part-id: imu1, control: accelY, value: 0.95 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.35 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: -0.65 }
+  - set-control: { part-id: imu1, control: accelY, value: -0.95 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.65 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: 0.70 }
+  - set-control: { part-id: imu1, control: accelY, value: 1.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.40 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: -0.70 }
+  - set-control: { part-id: imu1, control: accelY, value: -1.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.60 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: 0.65 }
+  - set-control: { part-id: imu1, control: accelY, value: 0.95 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.35 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: -0.65 }
+  - set-control: { part-id: imu1, control: accelY, value: -0.95 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.65 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: 0.70 }
+  - set-control: { part-id: imu1, control: accelY, value: 1.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.40 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: -0.70 }
+  - set-control: { part-id: imu1, control: accelY, value: -1.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.60 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: 0.65 }
+  - set-control: { part-id: imu1, control: accelY, value: 0.95 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.35 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: -0.65 }
+  - set-control: { part-id: imu1, control: accelY, value: -0.95 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.65 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: 0.70 }
+  - set-control: { part-id: imu1, control: accelY, value: 1.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.40 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: -0.70 }
+  - set-control: { part-id: imu1, control: accelY, value: -1.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.60 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: 0.65 }
+  - set-control: { part-id: imu1, control: accelY, value: 0.95 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.35 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: -0.65 }
+  - set-control: { part-id: imu1, control: accelY, value: -0.95 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.65 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: 0.70 }
+  - set-control: { part-id: imu1, control: accelY, value: 1.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.40 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: -0.70 }
+  - set-control: { part-id: imu1, control: accelY, value: -1.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.60 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: 0.65 }
+  - set-control: { part-id: imu1, control: accelY, value: 0.95 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.35 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: -0.65 }
+  - set-control: { part-id: imu1, control: accelY, value: -0.95 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.65 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: 0.70 }
+  - set-control: { part-id: imu1, control: accelY, value: 1.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 1.40 }
+  - delay: 1s
+  - set-control: { part-id: imu1, control: accelX, value: -0.70 }
+  - set-control: { part-id: imu1, control: accelY, value: -1.00 }
+  - set-control: { part-id: imu1, control: accelZ, value: 0.60 }
+  - delay: 1s
