@@ -30,6 +30,30 @@ const uint32_t HR_UPDATE_MS = 1500;
 const uint32_t CALORIE_UPDATE_MS = 1000;
 const uint8_t ENMO_WINDOW = 12;
 
+// ---------------- Baseline sleep/wake wellness estimator ----------------
+// This is deliberately a simple, inspectable heuristic for prototyping. Tune
+// these values with real, consented wearable data before relying on them.
+const uint32_t SLEEP_EPOCH_MS = 30000;
+const float SLEEP_QUIET_ENMO_G = 0.025f;
+const float SLEEP_HR_MARGIN_BPM = 15.0f;
+const uint8_t SLEEP_CONFIRM_EPOCHS = 2;
+const uint8_t WAKE_CONFIRM_EPOCHS = 2;
+const uint16_t SLEEP_SESSION_TIMEOUT_EPOCHS = 240;  // Two hours awake ends a session.
+
+struct SleepWellnessState {
+  bool sessionActive = false;
+  bool asleep = false;
+  bool hasSlept = false;
+  uint8_t quietEpochs = 0;
+  uint8_t activeEpochs = 0;
+  uint16_t timeInBedEpochs = 0;
+  uint16_t sleepEpochs = 0;
+  uint16_t wasoEpochs = 0;
+  uint16_t latencyEpochs = 0;
+  uint16_t consecutiveAwakeEpochs = 0;
+  uint16_t restlessnessEvents = 0;
+};
+
 Adafruit_MPU6050 mpu;
 bool imuReady = false;
 float heartRateBpm = RESTING_HR_BPM;
@@ -41,6 +65,8 @@ uint8_t enmoNext = 0;
 uint8_t enmoCount = 0;
 unsigned long lastHrMs = 0;
 unsigned long lastCalorieMs = 0;
+unsigned long lastSleepEpochMs = 0;
+SleepWellnessState sleepState;
 
 #if HAS_BLUEFRUIT
 BLEService heartRateService(UUID16_SVC_HEART_RATE);
@@ -56,6 +82,9 @@ float motionKcalPerMinute(float enmoG);
 float fusedKcalPerMinute(float hrBpm, float enmoG);
 void updateCalories(unsigned long nowMs);
 void publishHeartRate(uint8_t bpm);
+void updateSleepWellness(unsigned long nowMs, float enmoG, float hrBpm);
+bool isSleepQuiet(float enmoG, float hrBpm);
+void printSleepWellnessEstimate();
 #if HAS_BLUEFRUIT
 void startHeartRateBle();
 void startAdvertising();
@@ -109,6 +138,11 @@ void loop() {
     Serial.printf("HR: %.0f bpm | ENMO: %.3f g | burn: %.2f kcal/min | total: %.3f kcal\n",
                   heartRateBpm, motionEnmoG,
                   fusedKcalPerMinute(heartRateBpm, motionEnmoG), totalCaloriesKcal);
+  }
+
+  if (nowMs - lastSleepEpochMs >= SLEEP_EPOCH_MS) {
+    lastSleepEpochMs = nowMs;
+    updateSleepWellness(nowMs, motionEnmoG, heartRateBpm);
   }
   delay(25);
 }
@@ -185,6 +219,82 @@ void updateCalories(unsigned long nowMs) {
   totalCaloriesKcal += fusedKcalPerMinute(heartRateBpm, motionEnmoG)
       * ((nowMs - previousMs) / 60000.0f);
   previousMs = nowMs;
+}
+
+bool isSleepQuiet(float enmoG, float hrBpm) {
+  // Current Wokwi BPM values are synthetic. On hardware, pass a validated PPG
+  // reading here; this still remains a wellness heuristic, not sleep staging.
+  return enmoG <= SLEEP_QUIET_ENMO_G && hrBpm <= RESTING_HR_BPM + SLEEP_HR_MARGIN_BPM;
+}
+
+void updateSleepWellness(unsigned long nowMs, float enmoG, float hrBpm) {
+  (void)nowMs;
+  const bool quiet = isSleepQuiet(enmoG, hrBpm);
+  sleepState.quietEpochs = quiet ? sleepState.quietEpochs + 1 : 0;
+  sleepState.activeEpochs = quiet ? 0 : sleepState.activeEpochs + 1;
+
+  // A low-motion, low-HR period begins a candidate bedtime window. Requiring
+  // two consecutive epochs reduces one-off stillness being reported as sleep.
+  if (!sleepState.sessionActive && quiet) {
+    sleepState.sessionActive = true;
+    sleepState.timeInBedEpochs = 1;
+    sleepState.latencyEpochs = 1;
+  } else if (sleepState.sessionActive) {
+    sleepState.timeInBedEpochs++;
+  } else {
+    return;
+  }
+
+  if (!sleepState.asleep && sleepState.quietEpochs >= SLEEP_CONFIRM_EPOCHS) {
+    sleepState.asleep = true;
+    sleepState.hasSlept = true;
+    sleepState.sleepEpochs += SLEEP_CONFIRM_EPOCHS;
+    sleepState.latencyEpochs = sleepState.timeInBedEpochs - SLEEP_CONFIRM_EPOCHS;
+    sleepState.consecutiveAwakeEpochs = 0;
+  } else if (sleepState.asleep && quiet) {
+    sleepState.sleepEpochs++;
+    sleepState.consecutiveAwakeEpochs = 0;
+  } else if (sleepState.asleep && sleepState.activeEpochs >= WAKE_CONFIRM_EPOCHS) {
+    sleepState.asleep = false;
+    sleepState.wasoEpochs += SLEEP_CONFIRM_EPOCHS;
+    sleepState.restlessnessEvents++;
+    sleepState.consecutiveAwakeEpochs = SLEEP_CONFIRM_EPOCHS;
+  } else if (!sleepState.asleep && sleepState.hasSlept) {
+    sleepState.wasoEpochs++;
+    sleepState.consecutiveAwakeEpochs++;
+  }
+
+  printSleepWellnessEstimate();
+
+  if (!sleepState.asleep && sleepState.hasSlept &&
+      sleepState.consecutiveAwakeEpochs >= SLEEP_SESSION_TIMEOUT_EPOCHS) {
+    Serial.println("Sleep wellness session ended after extended wakefulness");
+    sleepState = SleepWellnessState();
+  }
+}
+
+void printSleepWellnessEstimate() {
+  const float epochMinutes = SLEEP_EPOCH_MS / 60000.0f;
+  const float timeInBedMinutes = sleepState.timeInBedEpochs * epochMinutes;
+  const float sleepMinutes = sleepState.sleepEpochs * epochMinutes;
+  const float wasoMinutes = sleepState.wasoEpochs * epochMinutes;
+  const float latencyMinutes = sleepState.latencyEpochs * epochMinutes;
+  const float efficiency = sleepState.timeInBedEpochs == 0 ? 0.0f
+      : 100.0f * sleepState.sleepEpochs / sleepState.timeInBedEpochs;
+
+  // Same transparent 40/30/20/10 formula as tools/sleep_score_baseline.py.
+  const float durationPoints = fminf(sleepMinutes / 480.0f, 1.0f) * 40.0f;
+  const float efficiencyPoints = efficiency / 100.0f * 30.0f;
+  const float continuityPoints = fmaxf(0.0f, 1.0f - wasoMinutes / 60.0f) * 20.0f;
+  const float latencyPoints = fmaxf(0.0f, 1.0f - latencyMinutes / 60.0f) * 10.0f;
+  const int score = (int)lroundf(durationPoints + efficiencyPoints + continuityPoints + latencyPoints);
+
+  Serial.printf(
+      "WELLNESS ESTIMATE sleep: %s | score: %d/100 | sleep: %.1f min | "
+      "efficiency: %.1f%% | restlessness: %u interruptions, %.1f min WASO | "
+      "latency: %.1f min | not medical advice\n",
+      sleepState.asleep ? "likely asleep" : "likely awake", score, sleepMinutes,
+      efficiency, sleepState.restlessnessEvents, wasoMinutes, latencyMinutes);
 }
 
 void publishHeartRate(uint8_t bpm) {

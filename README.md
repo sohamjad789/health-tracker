@@ -48,6 +48,53 @@ The three phases are deliberately 20 seconds each:
 - **Walking** — low-amplitude X/Y/Z oscillation; ENMO and the motion fallback increase.
 - **Vigorous/running** — stronger, faster oscillation; ENMO becomes noticeably larger.
 
+## Baseline sleep score from public data
+
+`tools/sleep_score_baseline.py` establishes a transparent 0-100 *reference*
+score from the lab-scored sleep labels in the PhysioNet Apple Watch dataset. It
+does not claim to infer sleep from the labels: the labels are used only to set
+and test the scoring formula before the tracker has a real PPG sensor.
+
+The formula is intentionally simple:
+
+- 40 points: total sleep duration, capped at 8 hours.
+- 30 points: sleep efficiency (sleep time divided by scored time in bed).
+- 20 points: continuity, reduced by wake-after-sleep-onset (WASO).
+- 10 points: sleep latency, reduced when it takes more than 60 minutes to fall asleep.
+
+Run it with a downloaded `*_labeled_sleep.txt` file:
+
+```bash
+python3 tools/sleep_score_baseline.py \
+  data/physionet-sleep-accel/7749105/7749105_labeled_sleep.txt
+```
+
+Dataset: Walch O. *Motion and heart rate from a wrist-worn wearable and labeled
+sleep from polysomnography*, PhysioNet v1.0.0 (2019),
+https://doi.org/10.13026/hmhs-py35. It is licensed under ODC Attribution 1.0.
+This score is a wellness prototype, not a diagnosis or a clinical metric.
+
+## Firmware sleep/wake wellness estimate
+
+`sketch.ino` now includes a separate baseline sleep/wake estimator for live
+tracker data. Every 30 seconds it combines the existing smoothed ENMO value
+with heart rate. Two consecutive quiet, low-heart-rate epochs begin a **likely
+asleep** period; two active epochs mark a likely wake interruption. It reports:
+
+- estimated sleep duration;
+- estimated sleep efficiency;
+- restlessness as interruption count and estimated wake-after-sleep-onset
+  (WASO); and
+- a 0–100 score using the same 40/30/20/10 duration, efficiency, continuity,
+  and latency formula as the reference script.
+
+The serial line starts with `WELLNESS ESTIMATE sleep:` and explicitly says
+`not medical advice`. It is a prototype heuristic, not a sleep-stage
+classifier, diagnosis, or clinical score. The ESP32/Wokwi build still uses
+synthetic BPM, so it can only exercise the pipeline; it cannot validate sleep
+accuracy. PhysioNet lab labels are not read by the firmware and remain solely
+for offline evaluation with `tools/sleep_score_baseline.py`.
+
 ## What changes on real hardware
 
 - Replace the two `FAKE DATA GENERATOR` blocks in `sketch.ino` with SparkFun MAX30101/MAX32664 initialization and validated BPM reads.
